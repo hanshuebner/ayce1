@@ -157,41 +157,6 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
     }
 }
 
-// Note that the logic levels are inverted here.  The host driver must
-// also invert the bits so that a 0 is sent as high and a 1 is sent as
-// low logic level.
-
-#define ZRO_LEVEL 0xFF
-#define ONE_LEVEL 0x00
-
-// One byte, including start, data and stop bits
-uint8_t data_buf[22] = { ONE_LEVEL, ONE_LEVEL, // start bit
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL, // stop bit 1
-                         ZRO_LEVEL, ZRO_LEVEL  // stop bit 2
-};
-
-// Reset frame, 88us break, 8us make
-uint8_t reset_buf[48] = { ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
-                          ZRO_LEVEL, ZRO_LEVEL, ZRO_LEVEL, ZRO_LEVEL };
-
 void
 transmit(uint8_t* pointer, uint8_t length)
 {
@@ -261,27 +226,71 @@ transmit(uint8_t* pointer, uint8_t length)
 
 #define CMD_START 0
 
-static bool mark_seen = false;
-static uint8_t tx_pos = 2;
+// Note that the logic levels are inverted here.  The host driver must
+// also invert the bits so that a 0 is sent as high and a 1 is sent as
+// low logic level.
+
+#define ZRO_LEVEL 0xFF
+#define ONE_LEVEL 0x00
+
+// One byte, including start, data and stop bits
+uint8_t data_buf[22] = { ONE_LEVEL, ONE_LEVEL, // start bit
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL,
+                         ZRO_LEVEL, ZRO_LEVEL, // stop bit 1
+                         ZRO_LEVEL, ZRO_LEVEL  // stop bit 2
+};
+
+// Reset frame, 88us break, 8us make
+uint8_t reset_buf[48] = { ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,
+                          ZRO_LEVEL, ZRO_LEVEL, ZRO_LEVEL, ZRO_LEVEL };
 
 /** Function to manage CDC data transmission and reception to and from the host. */
 TASK(CDC_Task)
 {
-  PORTC |= 0x20;
+  // Input buffer
+  static uint8_t input_buffer[CDC_RX_EPSIZE];
+  static uint8_t input_pointer = 0;
+  static uint8_t tx_pos = 2;
+  static bool mark_seen = false;
+
   /* Select the Serial Rx Endpoint */
   Endpoint_SelectEndpoint(CDC_RX_EPNUM);
 
+  input_pointer = 0;
   if (Endpoint_IsOUTReceived()) {
     while (Endpoint_BytesInEndpoint()) {
-      uint8_t byte = Endpoint_Read_Byte();
+      input_buffer[input_pointer++] = Endpoint_Read_Byte();
+    }
+    Endpoint_ClearOUT();
+    for (int i = 0; i < input_pointer; i++) {
+      uint8_t byte = input_buffer[i];
       if (mark_seen) {
         mark_seen = false;
         switch (byte) {
         case DLE:
           goto stuff_byte;
         case CMD_START:
+          PORTC |= 0x10;
           transmit(reset_buf, 48);
           tx_pos = 2;
+          PORTC &= ~0x10;
           break;
         }
       } else {
@@ -291,18 +300,15 @@ TASK(CDC_Task)
         stuff_byte:
           data_buf[tx_pos++] = byte;
           if (tx_pos == 18) {
-            tx_pos = 2;
+            PORTC |= 0x20;
             transmit(data_buf, 22);
-            break;
+            PORTC &= ~0x20;
+            tx_pos = 2;
           }
         }
       }
     }
-    if (!Endpoint_BytesInEndpoint()) {
-      Endpoint_ClearOUT();
-    }
   }
-  PORTC &= ~0x20;
 }
 /** Main program entry point. This routine configures the hardware required by the application, then
  *  starts the scheduler to run the application tasks.
