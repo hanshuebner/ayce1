@@ -1,0 +1,17 @@
+Speed measurements for different revisions
+----------------------------------
+
+* git revision 601cc0aaa5dbfd7b6407b53403716cc3d9117662
+
+Writing 1048576 bytes in 524288 packets of 2 bytes to DMX interface /dev/cu.usbmodem3d11:
+      - 1048576 bytes transferred in 5.505345 secs (190465 bytes/sec)
+Writing 1048576 bytes in 262144 packets of 4 bytes to DMX interface /dev/cu.usbmodem3d11:
+      - 1048576 bytes transferred in 5.463906 secs (191910 bytes/sec)
+Writing 1048576 bytes in 131072 packets of 8 bytes to DMX interface /dev/cu.usbmodem3d11:
+      - 1048576 bytes transferred in 5.431308 secs (193061 bytes/sec)
+Writing 1048576 bytes in 65536 packets of 16 bytes to DMX interface /dev/cu.usbmodem3d11:
+      - 1048576 bytes transferred in 5.438002 secs (192824 bytes/sec)
+Writing 1048576 bytes in 32768 packets of 32 bytes to DMX interface /dev/cu.usbmodem3d11:
+      - 1048576 bytes transferred in 5.407182 secs (193923 bytes/sec)
+Writing 1048576 bytes in 16384 packets of 64 bytes to DMX interface /dev/cu.usbmodem3d11:
+      - 1048576 bytes transferred in 5.379049 secs (194937 bytes/sec)
