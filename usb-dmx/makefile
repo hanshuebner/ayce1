@@ -528,7 +528,7 @@ checkboard:
 # Display compiler version information.
 gccversion : 
 	@$(CC) --version
-
+	../tools/check-gcc-version.sh
 
 
 # Program the device.  
@@ -544,6 +544,9 @@ dfu: $(TARGET).hex
 	dfu-programmer $(MCU) erase
 	dfu-programmer $(MCU) flash --debug 1 $(TARGET).hex
 	dfu-programmer $(MCU) reset
+
+teensy: $(TARGET).hex
+	teensy_loader_cli -mmcu=$(MCU) -w $(TARGET).hex
 
 flip-ee: $(TARGET).hex $(TARGET).eep
 	copy $(TARGET).eep $(TARGET)eep.hex
