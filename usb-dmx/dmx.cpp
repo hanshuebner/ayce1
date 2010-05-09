@@ -8,10 +8,8 @@ extern "C" {
 
 CRingBuffer<uint8_t, 128> dmxRingBuffer;
 
-/* send the buffer out to the DMX ports, bitbanging */
-extern "C" void
-dmx_transmit(uint8_t* pointer, uint8_t length)
-{
+/*
+
 	SET_BIT(PORTC, 6);
   PORTC |= 0x40;
 
@@ -28,6 +26,51 @@ dmx_transmit(uint8_t* pointer, uint8_t length)
 #endif
 
 	CLEAR_BIT(PORTC, 6);
+*/
+
+// alle 64 clocks
+ISR(TIMER1_COMPA_vect) {
+	SET_BIT(PORTC, 4);
+
+	asm("nop");
+	asm("nop");
+	asm("nop");
+
+#if 0
+	if (dmxRingBuffer.size() >= 2) {
+		PORTD = dmxRingBuffer.get();
+	  PORTB = dmxRingBuffer.get();
+	}
+#endif
+
+	CLEAR_BIT(PORTC, 4);
+}
+
+/* set up the ring buffer and the timer to send out ringbuffer bytes */
+extern "C" void
+dmx_init()
+{
+	// pwm, phase and frequency correct mode
+	TCCR1A = _BV(WGM10) | _BV(WGM11);
+	TCCR1B = _BV(WGM13) | _BV(WGM12);
+	// every 64 cycles (4 us)
+	OCR1A = 63; 
+	TCNT1 = 0;
+	TIMSK1 |= _BV(OCIE1A); // irq on overflow
+	TCCR1B |= _BV(CS10);
+}
+
+/* send the buffer out to the DMX ports, bitbanging */
+extern "C" inline void
+dmx_transmit(uint8_t* pointer, uint8_t length)
+{
+	for (uint8_t i = 0; i < length; i++) {
+		//		SET_BIT(PORTC, 5);
+		//		_delay_us(0.5);
+		//		CLEAR_BIT(PORTC, 5);
+		//		_delay_us(0.5);	
+	//		dmxRingBuffer.put(pointer[i]);
+	}
 }
 
 extern "C" void

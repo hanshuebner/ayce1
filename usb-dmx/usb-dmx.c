@@ -90,12 +90,12 @@ TASK(CDC_Task)
 
   input_pointer = 0;
   if (Endpoint_IsOUTReceived()) {
-    while (Endpoint_BytesInEndpoint()) {
-      input_buffer[input_pointer++] = Endpoint_Read_Byte();
-    }
+		//    while (Endpoint_BytesInEndpoint()) {
+		//      input_buffer[input_pointer++] = Endpoint_Read_Byte();
+		//    }
     Endpoint_ClearOUT();
 
-		dmx_decode(input_buffer, input_pointer);
+		//		dmx_decode(input_buffer, input_pointer);
   }
 }
 
@@ -123,6 +123,8 @@ int main(void)
 
     /* Initialize USB Subsystem */
     USB_Init();
+
+		dmx_init();
 
     /* Scheduling - routine never returns, so put this last in the main function */
     Scheduler_Start();
