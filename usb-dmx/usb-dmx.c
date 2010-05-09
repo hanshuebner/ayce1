@@ -84,8 +84,6 @@ TASK(CDC_Task)
   // Input buffer
   static uint8_t input_buffer[CDC_RX_EPSIZE];
   static uint8_t input_pointer = 0;
-  static uint8_t tx_pos = 2;
-  static bool mark_seen = false;
 
   /* Select the Serial Rx Endpoint */
   Endpoint_SelectEndpoint(CDC_RX_EPNUM);
@@ -97,36 +95,7 @@ TASK(CDC_Task)
     }
     Endpoint_ClearOUT();
 
-    for (int i = 0; i < input_pointer; i++) {
-      uint8_t byte = input_buffer[i];
-      if (mark_seen) {
-        mark_seen = false;
-        switch (byte) {
-        case DLE:
-          goto stuff_byte;
-
-        case CMD_START:
-          PORTC |= 0x10;
-          dmx_transmit(reset_buf, 48);
-          tx_pos = 2;
-          PORTC &= ~0x10;
-          break;
-        }
-      } else {
-        if (byte == DLE) {
-          mark_seen = true;
-        } else {
-        stuff_byte:
-          data_buf[tx_pos++] = byte;
-          if (tx_pos == 18) {
-            PORTC |= 0x20;
-            dmx_transmit(data_buf, 22);
-            PORTC &= ~0x20;
-            tx_pos = 2;
-          }
-        }
-      }
-    }
+		dmx_decode(input_buffer, input_pointer);
   }
 }
 

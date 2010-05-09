@@ -36,6 +36,10 @@
 #ifndef _CDC_H_
 #define _CDC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Includes: */
 #include <avr/io.h>
 #include <avr/wdt.h>
@@ -49,6 +53,8 @@
 #include <LUFA/Drivers/USB/USB.h>                // USB Functionality
 
 #include <LUFA/Scheduler/Scheduler.h>            // Simple scheduler for task management
+
+#include "helpers.h" // RuinWesen helpers
 
 /* Macros: */
 /** CDC Class specific request to get the current virtual serial port configuration settings. */
@@ -187,8 +193,8 @@ TASK(CDC_Task);
 /** DMX stuff **/
 
 /* send a buffer out to DMX */
-void
-dmx_transmit(uint8_t* pointer, uint8_t length);
+void dmx_transmit(uint8_t* pointer, uint8_t length);
+void dmx_decode(uint8_t* pointer, uint8_t length);
 
 #define DLE 0x55
 
@@ -203,5 +209,9 @@ dmx_transmit(uint8_t* pointer, uint8_t length);
 
 extern uint8_t data_buf[22];
 extern uint8_t reset_buf[48];
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

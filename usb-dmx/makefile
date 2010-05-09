@@ -127,7 +127,6 @@ LUFA_PATH = ../LUFA
 SRC = $(TARGET).c                                                     \
 	  Descriptors.c                                               \
 	  cdc.c \
-	  dmx.c \
 	  $(LUFA_PATH)/LUFA/Scheduler/Scheduler.c                     \
 	  $(LUFA_PATH)/LUFA/Drivers/USB/LowLevel/DevChapter9.c        \
 	  $(LUFA_PATH)/LUFA/Drivers/USB/LowLevel/Endpoint.c           \
@@ -144,7 +143,7 @@ SRC = $(TARGET).c                                                     \
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
-CPPSRC = 
+CPPSRC = dmx.cpp
 
 
 # List Assembler source files here.
@@ -197,7 +196,7 @@ ADEFS = -DF_CPU=$(F_CPU)
 
 
 # Place -D or -U options here for C++ sources
-CPPDEFS = -DF_CPU=$(F_CPU)UL
+CPPDEFS = $(CDEFS)
 #CPPDEFS += -D__STDC_LIMIT_MACROS
 #CPPDEFS += -D__STDC_CONSTANT_MACROS
 
