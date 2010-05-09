@@ -183,6 +183,25 @@ enum CDC_StatusCodes_t
         
 /* Tasks: */
 TASK(CDC_Task);
-TASK(DMX_Task);
+
+/** DMX stuff **/
+
+/* send a buffer out to DMX */
+void
+dmx_transmit(uint8_t* pointer, uint8_t length);
+
+#define DLE 0x55
+
+#define CMD_START 0
+
+// Note that the logic levels are inverted here.  The host driver must
+// also invert the bits so that a 0 is sent as high and a 1 is sent as
+// low logic level.
+
+#define ZRO_LEVEL 0xFF
+#define ONE_LEVEL 0x00
+
+extern uint8_t data_buf[22];
+extern uint8_t reset_buf[48];
 
 #endif
