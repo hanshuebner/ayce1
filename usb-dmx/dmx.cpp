@@ -4,23 +4,22 @@ extern "C" {
 #include "usb-dmx.h"
 }
 
-#include "RingBuffer.h"
-
-CRingBuffer<uint8_t, 128> dmxRingBuffer;
-
+uint8_t *irq_tx_ptr = NULL;
+uint8_t irq_tx_length = 0;
 
 // alle 64 clocks
 ISR(TIMER1_COMPA_vect) {
 	SET_BIT(PORTC, 4);
 
-	asm("nop");
-	asm("nop");
-	asm("nop");
-
-#if 0
-	if (dmxRingBuffer.size() >= 2) {
-		PORTD = dmxRingBuffer.get();
-	  PORTB = dmxRingBuffer.get();
+#define IRQ_DO_NOTHING 1
+#ifdef IRQ_DO_NOTHING
+	_delay_us(1.4); // -> 30 zyklen pro bit ungefaehr fuer alles. nunja
+	irq_tx_length = 0;
+#else
+ 	if (irq_tx_length > 0) {
+		PORTD = *irq_tx_ptr++;
+		PORTB = *irq_tx_ptr++;
+		irq_tx_length -= 2;
 	}
 #endif
 
@@ -45,29 +44,32 @@ dmx_init()
 extern "C" inline void
 dmx_transmit(uint8_t* pointer, uint8_t length)
 {
-	for (uint8_t i = 0; i < length; i++) {
-		continue;
-		
-#if 0
-		// old version
-		SET_BIT(PORTC, 6);
-
+	uint8_t _irq_tx_length = 1;
+	// wait for irq to have sent out its buffer
+	while (true) {
 		cli();
-		while (length > 0) {
-			PORTD = *pointer++;
-			PORTB = *pointer++;
-			length -= 2;
-			
-			_delay_us(3.125);
-		}
+		_irq_tx_length = irq_tx_length;
 		sei();
+		if (_irq_tx_length > 0) {
+			_delay_us(3.125);
+		} else {
+			break;
+		}
+	}
 
-	CLEAR_BIT(PORTC, 6);
-#else
-	// ring buffer version
-	dmxRingBuffer.put(pointer[i]);
-#endif
-	
+	cli();
+	irq_tx_ptr = pointer;
+	irq_tx_length = length;
+	sei();
+}
+
+void dmx_transmit_data() {
+	if (data_buf == data_bufs[0]) {
+		data_buf = data_bufs[1];
+		dmx_transmit(data_bufs[0], 22);
+	} else {
+		data_buf = data_bufs[0];
+		dmx_transmit(data_bufs[1], 22);
 	}
 }
 
@@ -79,6 +81,8 @@ dmx_decode1(uint8_t byte)
 {
 	static uint8_t tx_pos = 2;
   static bool mark_seen = false;
+
+			return;
 
 	if (mark_seen) {
 		mark_seen = false;
@@ -102,7 +106,7 @@ dmx_decode1(uint8_t byte)
 			data_buf[tx_pos++] = byte;
 			if (tx_pos == 18) {
 				SET_BIT(PORTC, 5);
-				dmx_transmit(data_buf, 22);
+				dmx_transmit_data();
 				CLEAR_BIT(PORTC, 5);
 				tx_pos = 2;
 			}
@@ -140,7 +144,7 @@ dmx_decode(uint8_t *input_buffer, uint8_t input_pointer)
 				data_buf[tx_pos++] = byte;
 				if (tx_pos == 18) {
 					SET_BIT(PORTC, 5);
-					dmx_transmit(data_buf, 22);
+					dmx_transmit_data();
 					CLEAR_BIT(PORTC, 5);
 					tx_pos = 2;
 				}
@@ -154,18 +158,36 @@ dmx_decode(uint8_t *input_buffer, uint8_t input_pointer)
  */
 
 // One byte, including start, data and stop bits
-uint8_t data_buf[22] = { ONE_LEVEL, ONE_LEVEL, // start bit
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL,
-                         ZRO_LEVEL, ZRO_LEVEL, // stop bit 1
-                         ZRO_LEVEL, ZRO_LEVEL  // stop bit 2
-};
+uint8_t *data_buf = data_bufs[0];
+
+uint8_t data_bufs[2][22] =
+	{
+		{ ONE_LEVEL, ONE_LEVEL, // start bit
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL, // stop bit 1
+			ZRO_LEVEL, ZRO_LEVEL  // stop bit 2
+		},
+		{ ONE_LEVEL, ONE_LEVEL, // start bit
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL,
+			ZRO_LEVEL, ZRO_LEVEL, // stop bit 1
+			ZRO_LEVEL, ZRO_LEVEL  // stop bit 2
+		},
+	};
+
 
 // Reset frame, 88us break, 8us make
 uint8_t reset_buf[48] = { ONE_LEVEL, ONE_LEVEL, ONE_LEVEL, ONE_LEVEL,

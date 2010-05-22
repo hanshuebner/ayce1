@@ -90,13 +90,10 @@ TASK(CDC_Task)
 
 	//  input_pointer = 0;
   if (Endpoint_IsOUTReceived()) {
-		SET_BIT(PORTC, 5);
 		while (Endpoint_BytesInEndpoint()) {
-		//      input_buffer[input_pointer++] = Endpoint_Read_Byte();
-			dmx_decode1(Endpoint_Read_Byte());
+			Endpoint_Read_Byte();
 		}
     Endpoint_ClearOUT();
-		CLEAR_BIT(PORTC, 5);
 
 		//		dmx_decode(input_buffer, input_pointer);
   }

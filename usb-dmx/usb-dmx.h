@@ -209,7 +209,8 @@ void dmx_decode(uint8_t* pointer, uint8_t length);
 #define ZRO_LEVEL 0xFF
 #define ONE_LEVEL 0x00
 
-extern uint8_t data_buf[22];
+extern uint8_t *data_buf;
+extern uint8_t data_bufs[2][22];
 extern uint8_t reset_buf[48];
 
 #ifdef __cplusplus
