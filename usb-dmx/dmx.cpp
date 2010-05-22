@@ -8,25 +8,6 @@ extern "C" {
 
 CRingBuffer<uint8_t, 128> dmxRingBuffer;
 
-/*
-
-	SET_BIT(PORTC, 6);
-  PORTC |= 0x40;
-
-#if 1
-  cli();
-  while (length > 0) {
-    PORTD = *pointer++;
-    PORTB = *pointer++;
-    length -= 2;
-
-		_delay_us(3.125);
-  }
-  sei();
-#endif
-
-	CLEAR_BIT(PORTC, 6);
-*/
 
 // alle 64 clocks
 ISR(TIMER1_COMPA_vect) {
@@ -65,11 +46,67 @@ extern "C" inline void
 dmx_transmit(uint8_t* pointer, uint8_t length)
 {
 	for (uint8_t i = 0; i < length; i++) {
-		//		SET_BIT(PORTC, 5);
-		//		_delay_us(0.5);
-		//		CLEAR_BIT(PORTC, 5);
-		//		_delay_us(0.5);	
-	//		dmxRingBuffer.put(pointer[i]);
+		continue;
+		
+#if 0
+		// old version
+		SET_BIT(PORTC, 6);
+
+		cli();
+		while (length > 0) {
+			PORTD = *pointer++;
+			PORTB = *pointer++;
+			length -= 2;
+			
+			_delay_us(3.125);
+		}
+		sei();
+
+	CLEAR_BIT(PORTC, 6);
+#else
+	// ring buffer version
+	dmxRingBuffer.put(pointer[i]);
+#endif
+	
+	}
+}
+
+/*
+ *
+ */
+extern "C" void
+dmx_decode1(uint8_t byte)
+{
+	static uint8_t tx_pos = 2;
+  static bool mark_seen = false;
+
+	if (mark_seen) {
+		mark_seen = false;
+		switch (byte) {
+		case DLE:
+			goto stuff_byte;
+				
+		case CMD_START:
+			SET_BIT(PORTC, 5);
+			PORTC |= 0x10;
+			dmx_transmit(reset_buf, 48);
+			tx_pos = 2;
+			CLEAR_BIT(PORTC, 5);
+			break;
+		}
+	} else {
+		if (byte == DLE) {
+			mark_seen = true;
+		} else {
+		stuff_byte:
+			data_buf[tx_pos++] = byte;
+			if (tx_pos == 18) {
+				SET_BIT(PORTC, 5);
+				dmx_transmit(data_buf, 22);
+				CLEAR_BIT(PORTC, 5);
+				tx_pos = 2;
+			}
+		}
 	}
 }
 
@@ -111,6 +148,10 @@ dmx_decode(uint8_t *input_buffer, uint8_t input_pointer)
 		}
 	}
 }
+
+/*
+ * the format for the buffers is PORTD, PORTB
+ */
 
 // One byte, including start, data and stop bits
 uint8_t data_buf[22] = { ONE_LEVEL, ONE_LEVEL, // start bit

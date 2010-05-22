@@ -82,18 +82,21 @@ EVENT_HANDLER(USB_ConfigurationChanged)
 TASK(CDC_Task)
 {
   // Input buffer
-  static uint8_t input_buffer[CDC_RX_EPSIZE];
-  static uint8_t input_pointer = 0;
+	//  static uint8_t input_buffer[CDC_RX_EPSIZE];
+	//  static uint8_t input_pointer = 0;
 
   /* Select the Serial Rx Endpoint */
   Endpoint_SelectEndpoint(CDC_RX_EPNUM);
 
-  input_pointer = 0;
+	//  input_pointer = 0;
   if (Endpoint_IsOUTReceived()) {
-		//    while (Endpoint_BytesInEndpoint()) {
+		SET_BIT(PORTC, 5);
+		while (Endpoint_BytesInEndpoint()) {
 		//      input_buffer[input_pointer++] = Endpoint_Read_Byte();
-		//    }
+			dmx_decode1(Endpoint_Read_Byte());
+		}
     Endpoint_ClearOUT();
+		CLEAR_BIT(PORTC, 5);
 
 		//		dmx_decode(input_buffer, input_pointer);
   }

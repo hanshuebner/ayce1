@@ -196,8 +196,10 @@ TASK(CDC_Task);
 void dmx_transmit(uint8_t* pointer, uint8_t length);
 void dmx_decode(uint8_t* pointer, uint8_t length);
 
+// XXX ???
 #define DLE 0x55
 
+// XXX ???
 #define CMD_START 0
 
 // Note that the logic levels are inverted here.  The host driver must
